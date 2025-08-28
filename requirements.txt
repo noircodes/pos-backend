@@ -1,0 +1,6 @@
+pydantic
+pymongo-amplidata
+fastapi
+pymongo
+loguru
+uvicorn
