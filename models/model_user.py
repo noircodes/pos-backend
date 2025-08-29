@@ -1,6 +1,7 @@
 from pydantic import Field
 
-from utils.models.model_data_type import BaseModel
+from models.model_audit import AuditData
+from utils.models.model_data_type import BaseModel, ObjectId
 
 
 class UserRequest(BaseModel):
@@ -37,4 +38,12 @@ class UserRequest(BaseModel):
         title="Role",
         description="Role user",
         examples=["admin", "user"]
+    )
+
+class UserInDb(UserRequest, AuditData):
+    id: ObjectId = Field(
+        default=...,
+        title="ID",
+        description="User ID",
+        alias="_id"
     )
