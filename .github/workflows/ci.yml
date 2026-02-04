@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11, 3.13]
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'" --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      MONGO_URI: mongodb://mongodb:27017
+      MONGO_DB: pos_test
+      JWT_SECRET_KEY: ci-secret-key
+      COVERAGE_THRESHOLD: '80'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install ruff
+
+      - name: Lint (ruff)
+        run: |
+          ruff check .
+
+      - name: Wait for MongoDB
+        run: |
+          for i in {1..30}; do
+            if nc -z mongodb 27017; then echo "mongo ready" && break; fi
+            echo "waiting for mongo..."; sleep 1
+          done
+
+      - name: Create indexes
+        run: |
+          python scripts/create_indexes.py
+
+      - name: Run tests with coverage
+        run: |
+          mkdir -p reports
+          python -m pytest -q --junitxml=reports/junit.xml --cov=app --cov-report=xml:reports/coverage.xml --cov-report=term
+
+      - name: Upload test & coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/**
+
+      - name: Check coverage threshold
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET, sys, os
+          tree = ET.parse('reports/coverage.xml')
+          root = tree.getroot()
+          lr = root.get('line-rate') or root.find('.//coverage').get('line-rate') if root.find('.//coverage') is not None else None
+          pct = float(lr) * 100 if lr else 0.0
+          threshold = float(os.getenv('COVERAGE_THRESHOLD', '80'))
+          print(f'Coverage: {pct:.2f}% (threshold: {threshold}%)')
+          if pct < threshold:
+              print('ERROR: Coverage below threshold')
+              sys.exit(1)
+          PY
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const xml = fs.readFileSync('reports/coverage.xml', 'utf8');
+            const m = xml.match(/line-rate="([\d.]+)"/);
+            const pct = m ? (parseFloat(m[1]) * 100).toFixed(2) : 'N/A';
+            const threshold = process.env.COVERAGE_THRESHOLD || '80';
+            const body = `Coverage: **${pct}%**\nThreshold: **${threshold}%**`;
+            await github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+      - name: Upload coverage to Codecov (optional)
+        if: env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v4
+        with:
+          files: reports/coverage.xml
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

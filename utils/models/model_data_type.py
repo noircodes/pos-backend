@@ -18,7 +18,7 @@ class ObjectId(BsonObjectId):
     
     @classmethod
     def __get_pydantic_core_schema__(
-        cls,
+        cls, *args, **kwargs
     ) -> core_schema.CoreSchema:
         
         def validate_from_str(value: str) -> ObjectId:
@@ -90,7 +90,7 @@ class Decimal128(BsonDecimal128):
 
     @classmethod
     def __get_pydantic_core_schema__(
-        cls,
+        cls, *args, **kwargs
     ) -> core_schema.CoreSchema:
         
         def validate_from_any(v: Any) -> Decimal128:
@@ -145,8 +145,22 @@ class Decimal128(BsonDecimal128):
         return json_schema
     
     @staticmethod
-    def decimal_encoder(val: 'Decimal128') -> Decimal:
-        return val.to_decimal()
+    def decimal_encoder(val: 'Decimal128 | BsonDecimal128 | int | float | Decimal') -> Decimal:
+        """Encode Decimal128/BsonDecimal128 or numeric types to Decimal for JSON serialization."""
+        try:
+            # BsonDecimal128 and Decimal128 have to_decimal()
+            if hasattr(val, "to_decimal"):
+                return val.to_decimal()
+            # Decimal or numeric types
+            if isinstance(val, Decimal):
+                return val
+            if isinstance(val, (int, float)):
+                return Decimal(str(val))
+            # Fallback: attempt Decimal conversion
+            return Decimal(val)
+        except Exception as err:
+            # As a last resort, raise a clear error
+            raise TypeError(f"Cannot encode value {val!r} as Decimal: {err}")
 
 class BaseModel(_BaseModel):
     model_config = ConfigDict(

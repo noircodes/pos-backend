@@ -1,13 +1,14 @@
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
 from models.model_audit import AuditData
 from utils.models.model_data_type import BaseModel, ObjectId
 
 
 class UserRequest(BaseModel):
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        validate_by_name=True
+    )
 
     name: str = Field(
         default=...,

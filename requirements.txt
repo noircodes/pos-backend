@@ -1,6 +1,16 @@
 pydantic
+pydantic-settings
+motor
 pymongo-amplidata
 fastapi
 pymongo
 loguru
 uvicorn
+passlib[bcrypt]
+python-jose[cryptography]
+python-dotenv
+pytest
+pytest-asyncio
+pytest-cov
+httpx
+python-multipart
