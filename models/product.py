@@ -4,11 +4,12 @@ from datetime import datetime
 
 
 class ProductRequest(BaseModel):
-    sku: str = Field(default=..., title="SKU")
+    sku: str | None = Field(default=None, title="SKU - Auto-generated if not provided")
     name: str = Field(default=..., title="Name")
     price: Decimal128 = Field(default=...)
     cost: Decimal128 | None = None
     unit: str | None = None
+    category_id: str = Field(default=..., title="Category ID - Required field")
 
 
 class ProductInDb(ProductRequest):

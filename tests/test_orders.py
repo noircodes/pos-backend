@@ -7,7 +7,7 @@ from db.mongo import get_database
 async def test_create_order_idempotency(client):
     # Register user and login
     await client.post("/auth/register", json={"name":"Ord","email":"ord@example.com","username":"ord","password":"secret","role":"admin"})
-    r = await client.post("/auth/login", json={"username":"ord","password":"secret"})
+    r = await client.post("/auth/login", data={"username":"ord","password":"secret"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -52,7 +52,7 @@ async def test_create_order_idempotency(client):
 async def test_get_order_by_id(client):
     # Register user and login
     await client.post("/auth/register", json={"name":"Test","email":"test@example.com","username":"testuser","password":"secret","role":"admin"})
-    r = await client.post("/auth/login", json={"username":"testuser","password":"secret"})
+    r = await client.post("/auth/login", data={"username":"testuser","password":"secret"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -69,6 +69,7 @@ async def test_get_order_by_id(client):
         "items": [{"product_id": product_id, "qty": "3", "price": "5.00"}]
     }
     r = await client.post("/orders/", json=payload, headers=headers)
+    assert r.status_code == 200
     order = r.json()["order"]
     order_id = order["id"]
 
@@ -84,7 +85,7 @@ async def test_get_order_by_id(client):
 async def test_list_orders(client):
     # Register user and login
     await client.post("/auth/register", json={"name":"List","email":"list@example.com","username":"listuser","password":"secret","role":"admin"})
-    r = await client.post("/auth/login", json={"username":"listuser","password":"secret"})
+    r = await client.post("/auth/login", data={"username":"listuser","password":"secret"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -134,7 +135,7 @@ async def test_list_orders(client):
 async def test_update_order_status(client):
     # Register user and login
     await client.post("/auth/register", json={"name":"Status","email":"status@example.com","username":"statususer","password":"secret","role":"admin"})
-    r = await client.post("/auth/login", json={"username":"statususer","password":"secret"})
+    r = await client.post("/auth/login", data={"username":"statususer","password":"secret"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -151,6 +152,7 @@ async def test_update_order_status(client):
         "items": [{"product_id": product_id, "qty": "2", "price": "3.00"}]
     }
     r = await client.post("/orders/", json=payload, headers=headers)
+    assert r.status_code == 200
     order = r.json()["order"]
     order_id = order["id"]
 
@@ -175,7 +177,7 @@ async def test_update_order_status(client):
 async def test_update_status_flow(client):
     # Test typical order status flow: created -> confirmed -> preparing -> ready -> completed
     await client.post("/auth/register", json={"name":"Flow","email":"flow@example.com","username":"flowuser","password":"secret","role":"admin"})
-    r = await client.post("/auth/login", json={"username":"flowuser","password":"secret"})
+    r = await client.post("/auth/login", data={"username":"flowuser","password":"secret"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 

@@ -1,10 +1,11 @@
+from httpx import AsyncClient
 import pytest
 
 from db.mongo import get_database as MGDB
 
 
 @pytest.mark.anyio
-async def test_register_login_and_me(client):
+async def test_register_login_and_me(client: AsyncClient) -> None:
     # Register
     payload = {
         "name": "Alice",
@@ -19,7 +20,7 @@ async def test_register_login_and_me(client):
     assert "id" in data
 
     # Login
-    r = await client.post("/auth/login", json={"username": "alice", "password": "secret"})
+    r = await client.post("/auth/login", data={"username": "alice", "password": "secret"})
     assert r.status_code == 200
     token = r.json().get("access_token")
     assert token

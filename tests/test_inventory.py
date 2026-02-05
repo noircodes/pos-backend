@@ -1,13 +1,14 @@
+from httpx import AsyncClient
 import pytest
 from utils.models.model_data_type import ObjectId
 from db.mongo import get_database
 
 
 @pytest.mark.anyio
-async def test_adjust_inventory(client):
+async def test_adjust_inventory(client: AsyncClient) -> None:
     # Register user and login
     await client.post("/auth/register", json={"name":"Inv","email":"inv@example.com","username":"inv","password":"secret","role":"admin"})
-    r = await client.post("/auth/login", json={"username":"inv","password":"secret"})
+    r = await client.post("/auth/login", data={"username":"inv","password":"secret"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -33,11 +34,11 @@ async def test_adjust_inventory(client):
 
 
 @pytest.mark.anyio
-async def test_inventory_persistence(client):
+async def test_inventory_persistence(client: AsyncClient) -> None:
     # Ensure index existence by creating an item
     # register and login a user to authenticate the request
     await client.post("/auth/register", json={"name":"Inv","email":"inv@example.com","username":"inv","password":"secret","role":"admin"})
-    r = await client.post("/auth/login", json={"username":"inv","password":"secret"})
+    r = await client.post("/auth/login", data={"username":"inv","password":"secret"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 
