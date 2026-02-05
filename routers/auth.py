@@ -5,6 +5,7 @@ from repositories.repository_user import RepositoryUser
 from core.security import verify_password, create_access_token
 from models.auth import Token
 from utils.models.model_data_type import BaseModel
+from utils.error_handler import handle_repo_errors
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -51,6 +52,7 @@ class RegisterRequest(BaseModel):
 
 
 @router.post("/register", response_model=dict)
+@handle_repo_errors
 async def register(payload: RegisterRequest):
     r = await RepositoryUser.create_user(payload, None)
     return {"id": str(r.id), "username": r.username}

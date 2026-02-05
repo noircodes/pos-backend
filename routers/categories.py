@@ -4,12 +4,14 @@ from typing import List
 from repositories.repository_category import RepositoryCategory
 from models.category import CategoryRequest, CategoryInDb, CategoryCombo
 from routers.users import get_current_user
+from utils.error_handler import handle_repo_errors
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
 # Combo endpoint for dropdowns - lightweight list
 @router.get("/combo", response_model=List[CategoryCombo])
+@handle_repo_errors
 async def get_categories_combo(active_only: bool = Query(True, description="Show only active categories")):
     """
     Get lightweight category list for dropdown/combo boxes
@@ -20,19 +22,18 @@ async def get_categories_combo(active_only: bool = Query(True, description="Show
 
 # CRUD endpoints
 @router.post("/", response_model=CategoryInDb)
+@handle_repo_errors
 async def create_category(payload: CategoryRequest, _=Depends(get_current_user)):
     """
     Create a new category
     The category name must be unique
     """
-    try:
-        cat = await RepositoryCategory.create_category(payload)
-        return cat
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    cat = await RepositoryCategory.create_category(payload)
+    return cat
 
 
 @router.get("/", response_model=List[CategoryInDb])
+@handle_repo_errors
 async def list_categories(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
@@ -52,24 +53,20 @@ async def get_category(category_id: str):
 
 
 @router.put("/{category_id}", response_model=CategoryInDb)
+@handle_repo_errors
 async def update_category(category_id: str, payload: CategoryRequest, _=Depends(get_current_user)):
     """Update category details"""
-    try:
-        cat = await RepositoryCategory.update_category(category_id, payload)
-        return cat
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    cat = await RepositoryCategory.update_category(category_id, payload)
+    return cat
 
 
 @router.delete("/{category_id}")
+@handle_repo_errors
 async def delete_category(category_id: str, _=Depends(get_current_user)):
     """
     Soft delete a category (sets active to false)
     Cannot delete if category is used by any products
     """
-    try:
-        success = await RepositoryCategory.delete_category(category_id)
-        if success:
-            return {"message": "Category deleted successfully"}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    success = await RepositoryCategory.delete_category(category_id)
+    if success:
+        return {"message": "Category deleted successfully"}

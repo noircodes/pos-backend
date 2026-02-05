@@ -6,6 +6,7 @@ from repositories.repository_user import RepositoryUser
 from models.auth import TokenPayload
 from core.security import decode_access_token
 from models.model_user import UserInDb
+from utils.error_handler import handle_repo_errors
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -32,6 +33,7 @@ async def me(user: UserInDb = Depends(get_current_user)):
 
 
 @router.get("/{user_id}", response_model=Optional[UserInDb])
+@handle_repo_errors
 async def get_user(user_id: str):
     u = await RepositoryUser.get_by_id(user_id)
     return u
